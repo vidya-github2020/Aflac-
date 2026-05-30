@@ -1,0 +1,112 @@
+parameters:
+- name: paveChannel
+  type: string
+- name: buildNumber
+  type: string
+- name: environment
+  type: string
+  default: IntG
+- name: testSuite
+  type: string
+- name: artifactoryTestResultLocation
+  type: string
+- name: robotPabotCommand
+  type: string
+- name: robotArgs
+  type: string
+  default: '*'
+
+steps:
+- script: ls -lrt
+
+- script: pwd
+
+- script: docker build --no-cache -t ${{ parameters.paveChannel }}-${{ parameters.buildNumber }} -f pipelines/Dockerfile-api .
+  displayName: 'Build RobotFramework Code Container'
+  condition: succeeded()
+
+- script: |
+    docker run --rm \
+      --env ${{ parameters.environment }}_CLIENT_ID=$(${{ parameters.environment }}_CLIENT_ID) \
+      --env ${{ parameters.environment }}_CLIENT_SECRET=$(${{ parameters.environment }}_CLIENT_SECRET) \
+      -v $(System.DefaultWorkingDirectory):/pave --name ${{ parameters.paveChannel }}-tests-${{ parameters.buildNumber }} ${{ parameters.paveChannel }}-${{ parameters.buildNumber }} ${{ parameters.robotPabotCommand }} -x junitreport.xml -d Results/ -v gEnvironment:${{ parameters.environment }} ${{ parameters.robotArgs }} ./${{ parameters.testSuite }}/TestSuites
+  workingDirectory: $(System.DefaultWorkingDirectory)
+  displayName: API Test Suite
+  failOnStderr: false
+  condition: succeeded()
+
+# --------------------------------------------------------
+# Publish Test Results to Tests Tab of Pipeline
+# --------------------------------------------------------  
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'junit*.xml'
+    searchFolder: '$(System.DefaultWorkingDirectory)/Results/'
+    failTaskOnFailedTests: false
+    testRunTitle: 'Customer-360-PAVE Test Suite'
+  condition: succeededOrFailed()
+
+# --------------------------------------------------------
+# Copy Test Artifacts to Staging Directory
+# --------------------------------------------------------  
+- task: CopyFiles@2
+  inputs:
+    downloadPath: '$(System.ArtifactsDirectory)' 
+    SourceFolder: '$(System.DefaultWorkingDirectory)/Results'
+    Contents: '**'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+  condition: succeededOrFailed()
+
+#----------------------------
+# Publish Test Report Files to be downloadable from Pipeline Job
+#----------------------------
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: '$(testSuite) Test Files'
+    publishLocation: 'Container'
+  condition: succeededOrFailed()
+              
+- task: ArchiveFiles@2
+  displayName: Archive Test Results
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)/Results'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.testSuite }}_${{ parameters.buildNumber }}.zip'
+    replaceExistingArchive: true
+  condition: succeededOrFailed()
+
+- task: ArtifactoryGenericUpload@2
+  displayName: Publish Test Results
+  inputs:
+    artifactoryService: 'ArtifactoryServiceConnection'
+    specSource: 'taskConfiguration'
+    fileSpec: |
+      {
+        "files": [
+          {
+            "pattern": "$(Build.ArtifactStagingDirectory)/${{ parameters.testSuite }}_${{ parameters.buildNumber }}.zip",
+            "target": "${{ parameters.artifactoryTestResultLocation }}"
+          }
+        ]
+      }
+    failNoOp: true
+  condition: succeededOrFailed()
+
+- script: |
+   sudo chown -R $USER: $(System.DefaultWorkingDirectory)
+   rm -rf $(System.DefaultWorkingDirectory)/Results
+  displayName: Clean Up Test Results Files
+  workingDirectory: $(System.DefaultWorkingDirectory)
+  condition: always()
+
+- script: |
+   export APP_NAME=${{ parameters.paveChannel }}
+   export BUILD_NUMBER=${{ parameters.buildNumber }}
+   docker-compose down
+   docker rmi ${{ parameters.paveChannel }}-${{ parameters.buildNumber }}
+  displayName: Clean Up Docker
+  workingDirectory: $(System.DefaultWorkingDirectory)
+  condition: always()

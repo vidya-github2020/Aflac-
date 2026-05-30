@@ -1,0 +1,177 @@
+parameters:
+- name: paveChannel
+  type: string
+- name: buildNumber
+  type: string
+- name: environment
+  type: string
+  default: IntG
+- name: testSuite
+  type: string
+- name: subSuite
+  type: string
+- name: pipelineRun
+  type: string  
+- name: artifactoryTestResultLocation
+  type: string
+- name: robotPabotCommand
+  type: string
+- name: robotArgs
+  type: string
+  default: '*'
+
+steps:
+
+- script: |
+    echo "##vso[task.setvariable variable=PipelineRunUrl]$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+  displayName: "Set Pipeline Run URL"
+
+#----------------------------
+# Pipeline Variables Summary
+#----------------------------
+- script: |
+    echo "================================" > summary.md
+    echo "🚀 Pipeline Environment: ${{parameters.environment}}" >> summary.md
+    echo "🔧 Build Branch: $(Build.SourceBranch)" >> summary.md
+    echo "================================" >> summary.md
+    cat summary.md
+  displayName: '🚨Environment and Build Summary'
+  workingDirectory: $(System.DefaultWorkingDirectory)
+  condition: always()
+
+- script: |
+    echo "##vso[task.uploadsummary]$(System.DefaultWorkingDirectory)/summary.md"
+  displayName: 'Upload Summary to Pipeline Results'
+  condition: always()
+
+# --------------------------------------------------------
+# Creates a Docker Network & Selenium Grid
+# --------------------------------------------------------
+- script: |
+   export APP_NAME=${{ parameters.paveChannel }}
+   export BUILD_NUMBER=${{ parameters.buildNumber }}
+   docker-compose up -d
+  displayName: Create Docker Network & Selenium Grid
+  workingDirectory: $(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests
+  condition: succeeded()
+
+- script: docker build --no-cache -t ${{ parameters.paveChannel }}-${{ parameters.buildNumber }} -f PAVE_RobotFrameworkTests/pipelines/Dockerfile .
+  displayName: 'Build RobotFramework Code Container'
+  condition: succeeded()
+
+- script: |
+   ./wait_for_selenium_hub.sh ${{ parameters.paveChannel }} ${{ parameters.buildNumber }}
+  workingDirectory: $(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests
+  displayName: Wait for Selenium Hub to start
+
+- script: |
+    docker run --rm \
+      --env ${{ parameters.environment }}_CLIENT_ID=$(${{ parameters.environment }}_CLIENT_ID) \
+      --env ${{ parameters.environment }}_CLIENT_SECRET=$(${{ parameters.environment }}_CLIENT_SECRET) \
+      --network ${{ parameters.paveChannel }}-network-${{ parameters.buildNumber }} -v $(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests:/pave --name ${{ parameters.paveChannel }}-tests-${{ parameters.buildNumber }} ${{ parameters.paveChannel }}-${{ parameters.buildNumber }} ${{ parameters.robotPabotCommand }} -x junitreport.xml -d Results/ -v remote_url:http://selenium-hub:4444 -v gEnvironment:${{ parameters.environment }} ${{ parameters.robotArgs }} -r $(testSuite)$(subSuite)-test-report -l $(testSuite)$(subSuite)-test-log ./${{ parameters.testSuite }}/TestSuites
+  workingDirectory: $(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests
+  displayName: UI Test Suite
+  failOnStderr: false
+  condition: succeeded()
+
+- task: Aflac Send Email@1
+  inputs:
+    To: 'C360-UI-Test-Execution-Advisory@aflac.com'
+    From: 'C360-UI-Test-Execution-Advisory@aflac.com'
+    CC: 'lmckinley@aflac.com'
+    Subject: 'FAILED: ${{parameters.environment}} $(testSuite)$(subSuite) $(pipelineRun) Robot UI Regression Test Report - $(Build.BuildNumber) <$(Build.SourceBranchName)>'
+    Body: |
+      <html>
+      <body>
+        <p><b>${{parameters.environment}} $(testSuite)$(subSuite)</b> Automated $(pipelineRun) Robot UI Regression has <span style="color:red;">FAILURES</span> against Branch <b>$(Build.SourceBranchName)</b>.</p>
+        <p>Please find the $(pipelineRun) Automated Robot UI Regression Test Report for $(testSuite)$(subSuite) attached.</p>
+        <p>For more information:</p>
+        <p><a href="$(PipelineRunUrl)">$(testSuite)$(subSuite) $(pipelineRun) Regression Pipeline</a></p>
+      </body>
+      </html>
+    Attachment: '$(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests/Results/$(testSuite)$(subSuite)-test-report.html'
+    SmtpServer: '$(SMTP_ServerName)'
+    SmtpPort: '587'
+    SmtpUsername: '$(SMTPUsername)'
+    SmtpPassword: '$(SMTPPassword)'
+  displayName: 'Send Email with Test Fails Report'
+  condition: failed()
+
+# --------------------------------------------------------
+# Publish Test Results to Tests Tab of Pipeline
+# --------------------------------------------------------  
+- task: PublishTestResults@2
+  inputs:
+    testResultsFormat: 'JUnit'
+    testResultsFiles: 'junit*.xml'
+    searchFolder: '$(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests/Results/'
+    failTaskOnFailedTests: false
+    testRunTitle: 'Customer-360-PAVE Test Suite'
+  condition: succeededOrFailed()
+
+# --------------------------------------------------------
+# Copy Test Artifacts to Staging Directory
+# --------------------------------------------------------  
+- task: CopyFiles@2
+  inputs:
+    downloadPath: '$(System.ArtifactsDirectory)' 
+    SourceFolder: '$(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests/Results'
+    Contents: '**'
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+  condition: succeededOrFailed()
+
+#----------------------------
+# Publish Test Report Files to be downloadable from Pipeline Job
+#----------------------------
+- task: PublishBuildArtifacts@1
+  inputs:
+    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+    ArtifactName: '$(testSuite) Test Files'
+    publishLocation: 'Container'
+  condition: succeededOrFailed()
+              
+- task: ArchiveFiles@2
+  displayName: Archive Test Results
+  inputs:
+    rootFolderOrFile: '$(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests/Results'
+    includeRootFolder: false
+    archiveType: 'zip'
+    archiveFile: '$(Build.ArtifactStagingDirectory)/${{ parameters.testSuite }}_${{ parameters.buildNumber }}.zip'
+    replaceExistingArchive: true
+  condition: succeededOrFailed()
+
+- task: ArtifactoryGenericUpload@2
+  displayName: Publish Test Results
+  inputs:
+    artifactoryService: 'ArtifactoryServiceConnection'
+    specSource: 'taskConfiguration'
+    fileSpec: |
+      {
+        "files": [
+          {
+            "pattern": "$(Build.ArtifactStagingDirectory)/${{ parameters.testSuite }}_${{ parameters.buildNumber }}.zip",
+            "target": "${{ parameters.artifactoryTestResultLocation }}"
+          }
+        ]
+      }
+    failNoOp: true
+  condition: succeededOrFailed()
+
+#----------------------------
+# Clean up test results 
+#----------------------------
+- script: |
+   sudo chown -R $USER: $(System.DefaultWorkingDirectory)
+   rm -rf $(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests/Results
+  displayName: Clean Up Test Results Files
+  workingDirectory: $(System.DefaultWorkingDirectory)
+  condition: always()
+
+- script: |
+   export APP_NAME=${{ parameters.paveChannel }}
+   export BUILD_NUMBER=${{ parameters.buildNumber }}
+   docker-compose down
+   docker rmi ${{ parameters.paveChannel }}-${{ parameters.buildNumber }}
+  displayName: Clean Up Docker
+  workingDirectory: $(System.DefaultWorkingDirectory)/PAVE_RobotFrameworkTests
+  condition: always()
