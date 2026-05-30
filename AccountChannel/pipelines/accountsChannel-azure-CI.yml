@@ -1,0 +1,80 @@
+resources:
+  repositories:
+  - repository: AflacCommon
+    type: github
+    endpoint: Aflac-Prod
+    name: Aflac-Prod/AflacCommon-RobotFramework
+
+# Trigger build when you push feature branch to master via opened pull request 
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - AccountChannel
+pr: 
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - AccountChannel
+
+pool: AflacAWSLinuxAgentPool 
+
+parameters:
+- name: environment
+  displayName: Select Environment
+  type: string
+  default: IntG
+  values:
+    - IntG
+    - SysT
+
+variables:
+  - name: componentName
+    value: 'Customer-360-PAVE'
+  - name: asCode
+    value: '7732981'
+  - name: applicationName
+    value: 'Customer-360-PAVE'
+  - name: testSuite
+    value: AccountChannel
+  - name: pipelineRun
+    value: CI
+  - name: artifactoryTestResultLocation
+    value: customer-360-pave-generic-nonprod
+  - name: buildNumberRobot
+    value: $[replace(variables['Build.BuildNumber'], '.', '-')]
+  - name: paveChannel
+    value: $[lower(variables.testSuite)]
+  - group: SMTPConfiguration
+
+stages:
+  - stage: BuildWorkspace_ExecuteTests_PublishResults
+    jobs:
+      - job:
+        timeoutInMinutes: 600
+        steps:
+
+        - checkout: self
+          clean: true
+          displayName: 'Checkout PAVE RobotFramework UI'
+          condition: succeeded()
+
+        - checkout: AflacCommon
+          clean: true
+          displayName: 'Checkout Aflac Common Framework'
+          condition: succeeded()
+
+        - template: ../../pipelines/templates/customer-360-pave-template-CI.yml
+          parameters:
+            paveChannel: $(paveChannel)
+            buildNumber: $(buildNumberRobot)
+            environment: ${{parameters.environment}}
+            testSuite: $(testSuite)
+            artifactoryTestResultLocation: $(artifactoryTestResultLocation)/$(paveChannel)-ui/ci/${{parameters.environment}}/$(Build.BuildNumber)/
+            robotPabotCommand: pabot --processes 5
+            robotArgs: -i Smoke -e Ignore
+            pipelineRun: $(pipelineRun)
