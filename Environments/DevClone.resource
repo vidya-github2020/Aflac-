@@ -4,68 +4,52 @@
 ###########################################################################
 
 * Variables
-#${WebChat_URL}              http://customerservicechat-dev.aflac.com/AflacAgentWebChat/index.html
-
-${Pega_SignIn_URL}           https://aflac-dt7-clone-internal.pegacloud.io/prweb
-#${sso_Pega_SignIn_URL}      https://aflac-dt7-internal.pegacloud.io/prweb/PRAuth/CustomerService
-
-#${AgentEmailWebForm_URL}    http://customerservicechat-dev.aflac.com/AgentEmailWebForm/index.html
-# ${AgentEmailWebForm_URL}   http://customerservicechat-dev.aflac.com/AgentEmailWebForm/indexCookiePassServiceFail.html
-# ${AgentEmailWebForm_URL}   http://customerservicechat-dev.aflac.com/AgentEmailWebForm/indexCookieFail.html
+#${WebChat_URL}                         http://customerservicechat-dev.aflac.com/AflacWebChatbot/index.html
+${Pega_SignIn_URL}                      https://aflac-dt7-clone-internal.pegacloud.io/prweb
 
 #==========================================================================#
-#                            C360 Agent Users                              #       
+#                          C360 Users			                           #
 #==========================================================================#
-# PAVE Agent CCS Logins
-# MCS = ModelChatSpecialist || MCSup = ModelChatSupervisor || CS = ClaimsSpecialist || GS = GeneralSpecialist
+# PolicyHolder CCS Logins
+${PolicyHolder_ccs_uName}               PHS001
+${PolicyHolderAccount_ccs_uName}        PHS002
+${PolicyHolderSearch_ccs_uName}         PHS003
+${PHClaims_ccs_uName}                   PHS004
+${PHPayment_ccs_uName}                  PHS005
+${PolicyHolderClaims_ccs_uName}         PHS006
+${PolicyHolderPayment_ccs_uName}        PHS007
+${PolicyHolderEF_ccs_uName}             EF0202
+${PolicyHolderBeeline_ccs_uName}        PHS008
+${PHPaymentSupervisor_ccs_uName}        PHS009
 
-${Agent_ccs_uName}                      MCS001
-${Agent2_ccs_uName}                     MCS002
-${Agent3_ccs_uName}                     MCS003
-${Agent4_ccs_uName}                     MCS004
-${Agent5_ccs_uName}                     MCS005
-${Agent6_ccs_uName}                     MCS006
-${Agent7_ccs_uName}                     MCS007
-${Agent8_ccs_uName}                     MCS008
-${Agent9_ccs_uName}                     MCS009
-${Agent10_ccs_uName}                    MCS010
-${Manager_ccs_uName}                    MCSup1
-${Claims_ccs_uName}                     CS0001
-${General_ccs_uName}                    GS0001
+# AgentChannel PolicyHolder CCS Logins
+${AgentSearch_ccs_uName}                AS0001
 
-# AccountChannel Agent CCS Logins
-# AU = Account User
-${AccountUser_ccs_uName}                AU0000
-${AccountUserOne_ccs_uName}             AU0001
-${AccountUserTwo_ccs_uName}             AU0002
-${AccountUserThree_ccs_uName}           AU0003
-${AccountUserFour_ccs_uName}            AU0004
-${AccountUserFive_ccs_uName}            AU0005
-${AccountUserSix_ccs_uName}             AU0006
+# AccountChannel PolicyHolder CCS Logins
+${PHAccount_ccs_uName}                  PHA001
 
-# AccountChannel and AgentChannel C360 Pwd
+# PolicyHolder, AccountChannel and AgentChannel C360 Pwd
 ${gPWD}                                 Aflac@020
 
 #==========================================================================#
-#                       SmartScreens Agent Users                           #   
+#                      SmartScreens Users	           		               #
 #==========================================================================#
-# Agent SmartScreen Logins - Please see PolicyHolder DevClone.resource file
+# PolicyHolder SmartScreen Logins
+${SSUser_ccs_uName}                     SSU000
+${SSOneUser_ccs_uName}                  SSU001
+${SSTwoUser_ccs_uName}                  SSU002
+${SSThreeUser_ccs_uName}                SSU003
+${SSFourUser_ccs_uName}                 SSU004
+${SSFiveUser_ccs_uName}                 SSU005
+${SSSixUser_ccs_uName}                  SSU006
 
-#==========================================================================#
-#                           Other Users                                    #
-#==========================================================================#
+# AgentChannel SmartScreen Logins
+${SSAgentUser_ccs_uName}                SSUA01
 
-# PAVE Agent Username
-${gLoggedInUserName}         Darvin
+# AccountChannel SmartScreen Logins
+${SSAccountUser_ccs_uName}              SSAU00
+${SSAccountOneUser_ccs_uName}           SSAU01
+${SSAccountTwoUser_ccs_uName}           SSAU02
 
-# Email SSO CCS Logins
-${sso_ccsUser}               EF0031
-${sso_ccsUser_pwd}           X02#M6@u5$$g@t4M5cjF
-${email_ccs_uName}           TestEf0031 testEF0031
-
-${sso_ccsManager}            EF0032
-${sso_ccsManager_pwd}        s3GEx@9Bb1$#82l5cjFW
-
-${sso_ccsAdmin}              EF0033
-${sso_ccsAdmin_pwd}          j0M6@u5$s3GExZ#3Vrhd
-
+# PolicyHolder, AccountChannel and AgentChannel SmartScreen Pwd
+${SSUser_ccs_uPwd}                      Aflac@020

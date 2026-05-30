@@ -8,10 +8,10 @@
 ###########################################################################
 
 * Settings
-Resource    ${EXECDIR}${/}AgentChannel${/}PageObjects${/}PageObjects_Resources.robot
+Resource    ${EXECDIR}${/}PolicyHolderChannel${/}PageObjects${/}PageObjects_Resources.robot
 
 * Variables
-${ccsStartTime}    02:59:59
-${ccsEndTime}      20:00:01
+${ccsStartTime}    00:00:00
+${ccsEndTime}      23:59:59
 
 * Keywords

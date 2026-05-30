@@ -8,23 +8,22 @@
 ###########################################################################
 
 * Settings
-Resource    ${EXECDIR}${/}AgentChannel${/}Settings.resource
+Resource    ${EXECDIR}${/}PolicyHolderChannel${/}Settings.resource
 
 * Variables
-${lbl_Agent_ccs_uName}          xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'ModelChatSpecialist_AgentNI')]
-${lbl_Agent_ccs_uName_txt}      ModelChatSpecialist_AgentNI
+${lbl_PolicyHolder_ccs_uName}        xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'PolicyHolderSpecialist_ccs')]
+${lbl_PolicyHolder_ccs_uName_txt}    PolicyHolderSpecialist_ccs
 
-${lbl_Manager_ccs_uName}        xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'Model Chat Supervisor')]
-${lbl_Manager_ccs_uName_txt}    Model Chat Supervisor
+${lbl_PClaims_ccs_uName}          xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'PHClaimsSpecialist_ccs')]
+${lbl_PHClaims_ccs_uName_txt}     PHClaimsSpecialist_ccs
+${lbl_PHPayment_ccs_uName}        xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'PHPaymentSpecialist_ccs')]
+${lbl_PHPayment_ccs_uName_txt}    PHPaymentSpecialist_ccs
 
-${lbl_Claims_ccs_uName}         xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'ClaimsSpecialist_AgentNI')]
-${lbl_Claims_ccs_uName_txt}     ClaimsSpecialist_AgentNI
+${lbl_PolicyHolderClaims_ccs_uName}         xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'PolicyHolderClaimsSpecialist_ccs')]
+${lbl_PolicyHolderClaims_ccs_uName_txt}     PolicyHolderClaimsSpecialist_ccs
+${lbl_PolicyHolderPayment_ccs_uName}        xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'PolicyHolderPaymentSpecialist_ccs')]
+${lbl_PolicyHolderPayment_ccs_uName_txt}    PolicyHolderPaymentSpecialist_ccs
 
-${lbl_General_ccs_uName}        xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'GeneralSpecialist_AgentNI')]
-${lbl_General_ccs_uName_txt}    GeneralSpecialist_AgentNI
-
-${lbl_email_ccs_uName}          xpath://span[contains(@class,'workarea_header_titles') and contains(text(),'TestEf0031')]
-${lbl_email_ccs_uName_txt}      TestEf0031 testEF0031
 
 * Keywords
 
