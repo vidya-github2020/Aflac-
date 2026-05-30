@@ -1,0 +1,83 @@
+schedules:
+- cron: "0 22 * * *"
+  displayName: Nightly Build at 10pm
+  branches:
+    include:
+    - main
+  always: true
+
+# Build Trigger on cron schedule above
+trigger: none
+
+pr: none
+  
+resources:
+  repositories:
+  - repository: AflacCommon
+    type: github
+    endpoint: Aflac-Prod
+    name: Aflac-Prod/AflacCommon-RobotFramework
+    
+pool: AflacAWSLinuxAgentPool 
+
+parameters:
+- name: environment
+  displayName: Select Environment
+  type: string
+  default: IntG
+  values:
+    - IntG
+    - SysT
+    - Dev
+    - DevClone
+
+variables:
+  - name: componentName
+    value: 'Customer-360-PAVE'
+  - name: asCode
+    value: '7732981'
+  - name: applicationName
+    value: 'Customer-360-PAVE'
+  - name: testSuite
+    value: AgentChannel
+  - name: subSuite
+    value:
+  - name: pipelineRun
+    value: Nightly
+  - name: artifactoryTestResultLocation
+    value: customer-360-pave-generic-nonprod
+  - name: buildNumberRobot
+    value: $[replace(variables['Build.BuildNumber'], '.', '-')]
+  - name: paveChannel
+    value: $[lower(variables.testSuite)]
+  - group: BearerAccessTokenVariables
+  - group: SMTPConfiguration
+        
+stages:
+  - stage: BuildWorkspace_ExecuteTests_PublishResults
+    jobs:
+      - job:
+        timeoutInMinutes: 600
+        steps:
+
+        - checkout: self
+          clean: true
+          displayName: 'Checkout PAVE RobotFramework UI'
+          condition: succeeded()
+
+        - checkout: AflacCommon
+          clean: true
+          displayName: 'Checkout Aflac Common Framework'
+          condition: succeeded()
+
+        - template: ../../pipelines/templates/customer-360-pave-template.yml
+          parameters:
+            paveChannel: $(paveChannel)
+            buildNumber: $(buildNumberRobot)
+            environment: ${{parameters.environment}}
+            testSuite: $(testSuite)
+            subSuite: $(subSuite)
+            artifactoryTestResultLocation: $(artifactoryTestResultLocation)/$(paveChannel)-ui/nightly-regression/${{parameters.environment}}/$(Build.BuildNumber)/
+            robotPabotCommand: pabot --processes 3
+            robotArgs: -e Ignore -e AgentChat
+            pipelineRun: $(pipelineRun)
